@@ -50,4 +50,17 @@ func main() {
 }
 ```
 
+### Known limitations
+
+* Max of `65534` items, because I need tight control over the memory layout and
+  I did not have time to make it very dynamic yet.
+
+* Linux only, I have not had time to make shm usage portable (with `shm_open(3)`
+  on darwin/osx, for example).
+
+* Queue state is on tmpfs, but nothing prevents it to be on durable
+  filesystems/storage, as long as mmap semantics are preserved. A durable
+  storage plus an append only journal could make this an interesting option for
+  a persistent/durable concurrent queue.
+
 [paper]: http://dl.acm.org/citation.cfm?id=248106
