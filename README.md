@@ -63,4 +63,6 @@ func main() {
   storage plus an append only journal could make this an interesting option for
   a persistent/durable concurrent queue.
 
+* Only `uint16` values can be queued for now.
+
 [paper]: http://dl.acm.org/citation.cfm?id=248106
