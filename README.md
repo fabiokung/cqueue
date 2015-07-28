@@ -61,11 +61,22 @@ same queue. You can also try running it yourself with `go test`.
 * Linux only, I have not had time to make shm usage portable (with `shm_open(3)`
   on darwin/osx, for example).
 
-* Queue state is on tmpfs, but nothing prevents it to be on durable
-  filesystems/storage, as long as mmap semantics are preserved. A durable
+* Queue state is on `tmpfs`, but nothing prevents it to be on durable
+  filesystems/storage, as long as `mmap` semantics are preserved. A durable
   storage plus an append only journal could make this an interesting option for
   a persistent/durable concurrent queue.
 
 * Only `uint16` values can be queued for now.
+
+* Processes crashing right after successfully Dequeueing an item, but before a
+  node is added back to the freelist, can cause memory to leak (nodes can get
+  orphaned). This can possibly be solved with a stop-the-world reaper that
+  detects orphaned nodes and add them back to the freelist. Maybe someday.
+
+* Concurrent Queues can currently be safely shared across multiple processes,
+  but it may be lacking some memory barriers to allow thread safety inside a
+  single process (across many goroutines). The Go runtime guarantees ordering
+  without explicit synchronization for a single goroutine. This shouldn't be too
+  hard to fix.
 
 [paper]: http://dl.acm.org/citation.cfm?id=248106
