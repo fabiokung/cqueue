@@ -50,6 +50,9 @@ func main() {
 }
 ```
 
+See tests for more examples and usage, including multiple processes sharing the
+same queue. You can also try running it yourself with `go test`.
+
 ### Known limitations
 
 * Max of `65534` items, because I need tight control over the memory layout and

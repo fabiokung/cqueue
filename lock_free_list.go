@@ -40,83 +40,6 @@ func (p *nodePointer) compareAndSwap(old, other nodePointer) bool {
 	return atomic.CompareAndSwapUint64(addr, *oldAsInt, *newAsInt)
 }
 
-func (l *lockFreeLinkedList) Empty() bool {
-	return l.head.index == l.tail.index
-}
-
-func (l *lockFreeLinkedList) enqueueFree(node *node) error {
-	// reset node
-	node.value = 0
-	node.next.index = -1
-	node.next.count = 0
-	node.nextFree.index = -1
-	node.nextFree.count = 0
-
-	var tail nodePointer
-	// similar to Enqueue, but on the free (linked)list
-	for {
-		tail = l.freeTail
-		next := l.nodes[tail.index].nextFree
-		if l.freeTail.equals(tail) {
-			if next.index == -1 {
-				if l.nodes[tail.index].nextFree.compareAndSwap(
-					next, nodePointer{
-						index: int32(node.idx),
-						count: next.count + 1,
-					},
-				) {
-					break
-				}
-			} else {
-				l.freeTail.compareAndSwap(tail, nodePointer{
-					index: next.index,
-					count: tail.count + 1,
-				})
-			}
-		}
-	}
-	l.freeTail.compareAndSwap(tail, nodePointer{
-		index: int32(node.idx),
-		count: tail.count + 1,
-	})
-	return nil
-}
-
-func (l *lockFreeLinkedList) dequeueFree() (*node, error) {
-	var (
-		free *node
-		head nodePointer
-	)
-	// similar to Dequeue, but on the free (linked)list
-	for {
-		head = l.freeHead
-		tail := l.freeTail
-		next := l.nodes[head.index].nextFree
-		if l.freeHead.equals(head) {
-			if head.index == tail.index {
-				if next.index == -1 {
-					return nil, ErrFreeListEmpty
-				}
-				l.freeTail.compareAndSwap(tail, nodePointer{
-					index: next.index,
-					count: tail.count + 1,
-				})
-			} else {
-				free = &l.nodes[next.index]
-				if l.freeHead.compareAndSwap(head, nodePointer{
-					index: next.index,
-					count: head.count + 1,
-				}) {
-					break
-				}
-			}
-		}
-	}
-	l.nodes[head.index].nextFree.index = -1
-	l.nodes[head.index].nextFree.count = 0
-	return free, nil
-}
-
 func (l *lockFreeLinkedList) Enqueue(v uint16) error {
 	node, err := l.dequeueFree()
 	if err != nil {
@@ -203,4 +126,80 @@ func (l *lockFreeLinkedList) Walk(fn NodeFunc) {
 	for i := l.head.index; i > 0; i = l.nodes[i].next.index {
 		fn(l.nodes[i].value)
 	}
+}
+func (l *lockFreeLinkedList) Empty() bool {
+	return l.head.index == l.tail.index
+}
+
+func (l *lockFreeLinkedList) enqueueFree(node *node) error {
+	// reset node
+	node.value = 0
+	node.next.index = -1
+	node.next.count = 0
+	node.nextFree.index = -1
+	node.nextFree.count = 0
+
+	var tail nodePointer
+	// similar to Enqueue, but on the free (linked)list
+	for {
+		tail = l.freeTail
+		next := l.nodes[tail.index].nextFree
+		if l.freeTail.equals(tail) {
+			if next.index == -1 {
+				if l.nodes[tail.index].nextFree.compareAndSwap(
+					next, nodePointer{
+						index: int32(node.idx),
+						count: next.count + 1,
+					},
+				) {
+					break
+				}
+			} else {
+				l.freeTail.compareAndSwap(tail, nodePointer{
+					index: next.index,
+					count: tail.count + 1,
+				})
+			}
+		}
+	}
+	l.freeTail.compareAndSwap(tail, nodePointer{
+		index: int32(node.idx),
+		count: tail.count + 1,
+	})
+	return nil
+}
+
+func (l *lockFreeLinkedList) dequeueFree() (*node, error) {
+	var (
+		free *node
+		head nodePointer
+	)
+	// similar to Dequeue, but on the free (linked)list
+	for {
+		head = l.freeHead
+		tail := l.freeTail
+		next := l.nodes[head.index].nextFree
+		if l.freeHead.equals(head) {
+			if head.index == tail.index {
+				if next.index == -1 {
+					return nil, ErrFreeListEmpty
+				}
+				l.freeTail.compareAndSwap(tail, nodePointer{
+					index: next.index,
+					count: tail.count + 1,
+				})
+			} else {
+				free = &l.nodes[next.index]
+				if l.freeHead.compareAndSwap(head, nodePointer{
+					index: next.index,
+					count: head.count + 1,
+				}) {
+					break
+				}
+			}
+		}
+	}
+	l.nodes[head.index].nextFree.index = -1
+	l.nodes[head.index].nextFree.count = 0
+	return free, nil
 }
