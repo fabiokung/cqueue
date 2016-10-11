@@ -11,7 +11,7 @@ import (
 var storageSize int // bytes
 
 func init() {
-	l := &lockFreeLinkedList{}
+	l := new(lockFreeLinkedList)
 	mem := sharedMemory{
 		list: l,
 		raw:  make([]byte, 0, 0),
